@@ -1,7 +1,8 @@
 import pytest
+from django.urls import reverse
 from model_bakery import baker
 from rest_framework.test import APIClient
-
+from students.serializers import CourseSerializer
 import django_testing.settings as sett
 from students.models import Student, Course
 
@@ -32,21 +33,22 @@ def course_factory():
 
 @pytest.mark.django_db
 def test_get_first_course(client):
-    Course.objects.create(name='python-developer')
-    first = Course.objects.first()
+    course = Course.objects.create(name='python-developer')
+    url = reverse('courses-detail', args=[course.id])
 
-    response = client.get('/courses/1/')
+    response = client.get(url)
 
     assert response.status_code == 200
     data = response.json()
-    assert first.name == data['name']
+    assert course.name == data['name']
 
 
 @pytest.mark.django_db
 def test_get_list(client, course_factory):
     courses = course_factory(_quantity=10)
+    url = reverse('courses-list')
 
-    response = client.get('/courses/')
+    response = client.get(url)
 
     assert response.status_code == 200
     data = response.json()
@@ -56,8 +58,9 @@ def test_get_list(client, course_factory):
 @pytest.mark.django_db
 def test_get_list_by_id_filter(client, course_factory):
     courses = course_factory(_quantity=10)
+    url = reverse('courses-list')
 
-    response = client.get('/courses/?id=7')
+    response = client.get(f'{url}?id=7')
 
     assert response.status_code == 200
     data = response.json()
@@ -68,8 +71,9 @@ def test_get_list_by_id_filter(client, course_factory):
 def test_get_list_by_name_filter(client, course_factory,):
     courses = course_factory(_quantity=10)
     id_7_name = courses[6].name
+    url = reverse('courses-list')
 
-    response = client.get(f'/courses/?name={id_7_name}')
+    response = client.get(f'{url}?name={id_7_name}')
 
     assert response.status_code == 200
     data = response.json()
@@ -79,8 +83,9 @@ def test_get_list_by_name_filter(client, course_factory,):
 @pytest.mark.django_db
 def test_create_course(client):
     data = {'name': 'python-developer'}
+    url = reverse('courses-list')
 
-    response = client.post('/courses/', data=data)
+    response = client.post(f'{url}', data=data)
 
     assert response.status_code == 201
     course = Course.objects.first()
@@ -91,8 +96,9 @@ def test_create_course(client):
 def test_patch_course(client, course_factory):
     course = course_factory()
     data = {'name': 'python-developer'}
+    url = reverse('courses-detail', args=[course.id])
 
-    response = client.patch('/courses/1/', data=data)
+    response = client.patch(url, data=data)
 
     assert response.status_code == 200
     course = Course.objects.first()
@@ -102,15 +108,22 @@ def test_patch_course(client, course_factory):
 @pytest.mark.django_db
 def test_delete_course(client, course_factory):
     course = course_factory()
+    url = reverse('courses-detail', args=[course.id])
 
-    response = client.delete('/courses/1/')
+    response = client.delete(url)
 
     assert response.status_code == 204
     assert Course.objects.count() == 0
 
 
 # Доп. задание
-@pytest.mark.parametrize("student_count, expected_result", [(1, True), (21, False)])
-def test_validation(settings, student_count, expected_result):
+test_values = [
+    (1),
+    (21)
+]
 
-    assert (settings.MAX_STUDENTS_PER_COURSE >= student_count) == expected_result
+
+@pytest.mark.parametrize("students", test_values)
+def test_validation(settings, students):
+
+    assert CourseSerializer().validate_students(value=test_values)
