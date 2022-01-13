@@ -11,11 +11,6 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = ("id", "name", "students")
 
-    # def validate(self, data):
-    #     if len(data['students']) > MAX_STUDENTS_PER_COURSE:
-    #         raise ValidationError("students can't be more then 20")
-    #     return data
-
     def validate_students(self, value):
         """
         Check that the blog post is about Django.
