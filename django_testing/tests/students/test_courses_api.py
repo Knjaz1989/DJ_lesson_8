@@ -60,7 +60,7 @@ def test_get_list_by_id_filter(client, course_factory):
     courses = course_factory(_quantity=10)
     url = reverse('courses-list')
 
-    response = client.get(f'{url}?id=7')
+    response = client.get(f'{url}?id={courses[6].id}')
 
     assert response.status_code == 200
     data = response.json()
