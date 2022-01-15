@@ -1,6 +1,9 @@
 import pytest
+
 from django.urls import reverse
 from model_bakery import baker
+from rest_framework.exceptions import ValidationError
+from _pytest.compat import nullcontext as does_not_raise
 from rest_framework.test import APIClient
 from students.serializers import CourseSerializer
 import django_testing.settings as sett
@@ -118,12 +121,15 @@ def test_delete_course(client, course_factory):
 
 # Доп. задание
 test_values = [
-    (1),
-    (21)
+    (1, does_not_raise()),
+    (21, pytest.raises(ValidationError))
 ]
 
 
-@pytest.mark.parametrize("students", test_values)
-def test_validation(settings, students):
+@pytest.mark.django_db
+@pytest.mark.parametrize("students_count, expected_result", test_values)
+def test_validation(student_factory, students_count, expected_result):
+    students_id = [student.id for student in student_factory(_quantity=students_count)]
 
-    assert CourseSerializer().validate_students(value=test_values)
+    with expected_result:
+        assert CourseSerializer().validate_students(value=students_id)
